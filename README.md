@@ -192,7 +192,7 @@ This script generates benchmark questions and four candidate options. It also co
 
 - a **generator prompt**
 - a **judger prompt**
-- a **curator prompt**
+- a **reviser prompt**
 
 These prompts are used to create and verify high-quality adversarial benchmark instances with:
 
