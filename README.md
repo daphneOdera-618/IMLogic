@@ -4,12 +4,6 @@ IMLogic is a benchmark for evaluating whether a personalized assistant can use u
 
 This repository contains the benchmark data, the generation and verification prompts, and reference evaluation scripts for both **memory-level** and **conversation-level** settings. It supports both **multiple-choice QA (MCQ)** and **open-ended QA** evaluation.
 
-## Repository Update Note
-
-Specifically, the repository now includes the benchmark instances, the generation and verification prompts, the data schema, and instructions for using IMLogic under both memory-level and conversation-level evaluation. We also provide guidance for running the benchmark in both MCQ and open-ended QA settings. In the revision, we will add a dedicated appendix describing the benchmark format, construction process, and evaluation protocol, so that future researchers can more easily use and reproduce IMLogic.
-
-Thank you again for your constructive comments. We believe the above clarifications and repository updates directly address your concerns regarding the query-conditioned nature of implicit logical relevance and the usability of the IMLogic benchmark.
-
 ## What Is Being Evaluated
 
 IMLogic focuses on the following question:
@@ -18,8 +12,8 @@ IMLogic focuses on the following question:
 
 The benchmark is built around pairs of memories:
 
-- `memory_d`: a distractor or surface-level intention/preference
-- `memory_t`: the true constraint that should govern the answer
+- `m_s`: the semantic memory capturing a surface-level intention/preference
+- `m_l`: the logical memory that should govern the answer
 
 In other words, the model must identify that the relevant answer is not determined by the most obvious memory, but by the memory that is **query-conditioned and logically controlling**.
 
@@ -122,8 +116,8 @@ Each `dataset/qa/qa_userXX.json` file is a list of benchmark instances for the c
 
 Each QA item contains:
 
-- `memory_d`: distractor memory
-- `memory_t`: true logical constraint
+- `m_s`: semantic memory
+- `m_l`: logical memory
 - `query_type`: e.g., `Advice`, `Recommendation`, `Conversation`
 - `query`: the user query to answer
 - `options`: the MCQ candidates
@@ -132,8 +126,8 @@ Each QA item contains:
 
 The `options` object contains:
 
-- `Correct`: the logically correct answer when `memory_t` is used properly
-- `Trap_Preference`: answer based on the distractor memory only
+- `Correct`: the logically correct answer when `m_l` is used properly
+- `Trap_Preference`: answer based on `m_s` only
 - `Trap_Fabrication`: answer with hallucinated justification
 - `Trap_Generic`: generic advice without relevant memory grounding
 
@@ -141,8 +135,8 @@ Minimal schema sketch:
 
 ```json
 {
-  "memory_d": "...",
-  "memory_t": "...",
+  "m_s": "...",
+  "m_l": "...",
   "query_type": "Advice",
   "query": "...",
   "options": {
@@ -156,7 +150,7 @@ Minimal schema sketch:
 }
 ```
 
-For open-ended judgment, `memory_t` is used as **Memory l** in the judge prompt.
+For open-ended judgment, `m_l` is used as the logical memory in the judge prompt.
 
 ## Benchmark Construction Pipeline
 
@@ -183,12 +177,12 @@ This script assigns each memory a top-level semantic tag using an LLM-based taxo
 
 File: `generate/implicit_logical_memory_pair_mining.py`
 
-This script mines candidate `(L, S)` pairs where:
+This script mines candidate `(m_l, m_s)` pairs where:
 
-- `L` is the logically constraining memory
-- `S` is a competing or distractor memory
+- `m_l` is the logical memory that should constrain the answer
+- `m_s` is the semantic memory that is surface-level relevant to the query
 
-The mining prompt asks whether `S` conflicts with or is logically dominated by `L`, rather than merely being topically unrelated.
+The mining prompt asks whether `m_s` is logically dominated by `m_l`, rather than merely being topically unrelated.
 
 ### 3. QA Generation and Verification
 
@@ -202,8 +196,8 @@ This script generates benchmark questions and four candidate options. It also co
 
 These prompts are used to create and verify high-quality adversarial benchmark instances with:
 
-- strong alignment to the distractor memory
-- zero leakage of the true constraint into the query
+- strong surface alignment to `m_s`
+- zero leakage of `m_l` into the query
 - balanced candidate options
 
 ## Evaluation Settings
@@ -300,7 +294,7 @@ File: `eval/judge_openended.py`
 
 This script evaluates open-ended model outputs using an LLM judge. For each QA item, it uses:
 
-- `memory_t` as `Memory l`
+- `m_l` as the logical memory
 - `options["Correct"]` as `Reference Answer`
 - the original `query` as `User Question`
 - the generated answer as `Model Prediction`
@@ -325,7 +319,7 @@ The judge returns JSON of the form:
 The saved result file includes:
 
 - per-question judge result
-- `memory_l`
+- `m_l`
 - `reference_answer`
 - `model_prediction`
 - aggregate accuracy statistics
@@ -452,7 +446,7 @@ In the revision, we will add a dedicated appendix that formally describes:
 - the benchmark format
 - the benchmark construction process
 - the evaluation protocol
-- the distinction between distractor memories and query-conditioned logical constraints
+- the distinction between `m_s` and query-conditioned `m_l` constraints
 
 This appendix is intended to make IMLogic easier to use, analyze, and reproduce for future researchers.
 
